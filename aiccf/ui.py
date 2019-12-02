@@ -291,7 +291,7 @@ class LabelTree(QtGui.QWidget):
         self.labels_changed.emit()
 
     def add_label(self, id, parent, name, acronym, color):
-        item = QtGui.QTreeWidgetItem([acronym, name, ''])
+        item = QtGui.QTreeWidgetItem([acronym.decode(), name.decode(), ''])
         item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
         item.setCheckState(0, QtCore.Qt.Unchecked)
 
@@ -302,8 +302,8 @@ class LabelTree(QtGui.QWidget):
 
         root.addChild(item)
 
-        btn = pg.ColorButton(color=pg.mkColor(color))
-        btn.defaultColor = color
+        btn = pg.ColorButton(color=pg.mkColor(color.decode()))
+        btn.defaultColor = color.decode()
         btn.id = id
         self.tree.setItemWidget(item, 2, btn)
 
@@ -363,7 +363,7 @@ class LabelTree(QtGui.QWidget):
             if not isinstance(root, pg.QtGui.QTreeWidgetItem):
                 self.blockSignals(True)
                 unblock = True
-                root = self.labels_by_acronym['Isocortex']['item']
+                root = self.labels_by_acronym[b'Isocortex']['item']
 
             name = str(root.text(1))
             if ', layer' in name.lower():
@@ -393,7 +393,7 @@ class LabelTree(QtGui.QWidget):
         descr = []
         item = self.labels_by_id[id]['item']
         name = str(item.text(1))
-        while item is not self.labels_by_acronym['root']['item']:
+        while item is not self.labels_by_acronym[b'root']['item']:
             descr.insert(0, str(item.text(0)))
             item = item.parent()
         return '[%d]' % id + ' > '.join(descr) + "  :  " + name
@@ -449,7 +449,7 @@ class AtlasImageItem(QtGui.QGraphicsItemGroup):
 
         try:
             id = self.label_data[int(event.pos().x()), int(event.pos().y())]
-        except IndexError, AttributeError:
+        except (IndexError, AttributeError):
             return
         self.mouseHovered.emit(id)
 
@@ -673,13 +673,13 @@ def download(url, dest, chunksize=1000000):
     size = req.info().get('content-length')
     size = 0 if size is None else int(size)
     tmpdst = dest+'.partial'
-    with pg.ProgressDialog("Downloading\n%s" % url, maximum=size, nested=True) as dlg:
+    with pg.ProgressDialog("Downloading %0.2f MB:\n%s" % (size/1e6, url), maximum=size, nested=True) as dlg:
         try:
             with open(tmpdst, 'wb') as fh:
                 tot = 0
                 while True:
                     chunk = req.read(chunksize)
-                    if chunk == '':
+                    if len(chunk) == 0:
                         break
                     fh.write(chunk)
                     tot += len(chunk)

@@ -10,7 +10,6 @@ from aiccf.ui import AtlasDisplayCtrl, LabelTree, AtlasSliceView
 from aiccf import points_to_aff
 
 
-
 class AtlasViewer(QtGui.QWidget):
     """Class that assembles all of the available UI elements into
     one widget.
@@ -430,7 +429,7 @@ class Target(pg.GraphicsObject):
 
 
 def displayError(error):
-    print error
+    print(error)
     err = QtGui.QErrorMessage()
     err.showMessage(error)
     err.exec_()

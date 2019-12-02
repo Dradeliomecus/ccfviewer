@@ -143,7 +143,10 @@ def read_nrrd_atlas(nrrd_file):
     Download atlas files from:
       http://help.brain-map.org/display/mouseconnectivity/API#API-DownloadAtlas
     """
-    import nrrd
+    try:
+        import nrrd
+    except ImportError:
+        raise Exception("Could not import module 'nrrd'  (please install pynrrd)")
 
     data, header = nrrd.read(nrrd_file)
 
@@ -168,7 +171,7 @@ def read_nrrd_atlas(nrrd_file):
     return ma
 
 
-def read_nrrd_labels(nrrdFile, ontologyFile):
+def read_nrrd_labels(nrrd_file, ontology_file):
     """
     Download label files from:
       http://help.brain-map.org/display/mouseconnectivity/API#API-DownloadAtlas
@@ -188,21 +191,20 @@ def read_nrrd_labels(nrrdFile, ontologyFile):
     import nrrd
 
     with pg.ProgressDialog("Loading annotation file...", 0, 5, wait=0, nested=True) as dlg:
-        print "Loading annotation file..."
+        print("Loading annotation file...")
         pg.QtGui.QApplication.processEvents()
         # Read ontology and convert to flat table
-        onto = json.load(open(ontologyFile, 'rb'))
+        onto = json.load(open(ontology_file, 'rb'))
         onto = parse_ontology(onto['msg'][0])
         l1 = max([len(row[2]) for row in onto])
         l2 = max([len(row[3]) for row in onto])
-        ontology = np.array(onto, dtype=[('id', 'int32'), ('parent', 'int32'), ('name', 'S%d'%l1), ('acronym', 'S%d'%l2), ('color', 'S6')])    
-
+        ontology = np.array(onto, dtype=[('id', 'int32'), ('parent', 'int32'), ('name', 'S%d'%l1), ('acronym', 'S%d'%l2), ('color', 'S6')])
         if dlg.wasCanceled():
             return
         dlg += 1
 
         # read annotation data
-        data, header = nrrd.read(nrrdFile)
+        data, header = nrrd.read(nrrd_file)
 
         if dlg.wasCanceled():
             return
@@ -217,7 +219,7 @@ def read_nrrd_labels(nrrdFile, ontologyFile):
         dlg += 1
 
     # compress down to uint16
-    print "Compressing.."
+    print("Compressing..")
     u = np.unique(data)
     
     # decide on a 32-to-64-bit label mapping
