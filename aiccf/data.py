@@ -151,7 +151,8 @@ def read_nrrd_atlas(nrrd_file):
     data, header = nrrd.read(nrrd_file)
 
     # convert to ubyte to compress a bit
-    np.multiply(data, 255./data.max(), out=data, casting='unsafe')
+    # (no inplace multiply; nrrd returns read-only array)
+    data = data * (255./data.max())  
     data = data.astype('ubyte')
 
     # data must have axes (anterior, dorsal, right)

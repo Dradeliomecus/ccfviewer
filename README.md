@@ -26,7 +26,7 @@ Requirements
 
 * Python 2.7
 * PyQt4
-* PyQtGraph
+* PyQtGraph >= 0.11 (sorry, 0.10 will not work)
 * numpy
 * nrrd
 * h5py 
