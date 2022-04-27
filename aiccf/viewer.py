@@ -99,6 +99,8 @@ class AtlasViewer(QtGui.QWidget):
         self.atlas_view.set_data(atlas_data)
         self.view1.autoRange(items=[self.img1.atlas_img])
         self.coordinateCtrl.atlas_shape = atlas_data.shape
+        self.label = atlas_data.label
+        self.atlas = atlas_data.image
         
     def mouseHovered(self, id):
         self.statusLabel.setText(self.atlas_view.label_tree.describe(id))
@@ -139,8 +141,7 @@ class AtlasViewer(QtGui.QWidget):
     # Returns two strings. One used for display in a label and the other to put in the clipboard
     # PIR orientation where x axis = Anterior-to-Posterior, y axis = Superior-to-Inferior and z axis = Left-to-Right
     def getCcfPoint(self, mouse_point):
-
-        axis = self.displayCtrl.params['Orientation']
+        axis = self.atlas_view.display_ctrl.params['Orientation']
 
         # find real lims id
         lims_str_id = (key for key, value in self.label._info[-1]['ai_ontology_map'] if value == mouse_point[1]).next()
@@ -192,9 +193,9 @@ class AtlasViewer(QtGui.QWidget):
         Point is a tuple with values x, y, z (ordered) 
         """
         vxsize = self.atlas._info[-1]['vxsize'] * 1e6
-        p_to_ccf = ((self.atlas_view.atlas.shape[1] - point[0]) * vxsize,
-                    (self.atlas_view.atlas.shape[2] - point[1]) * vxsize,
-                    (self.atlas_view.atlas.shape[0] - point[2]) * vxsize)
+        p_to_ccf = ((self.atlas.shape[1] - point[0]) * vxsize,
+                    (self.atlas.shape[2] - point[1]) * vxsize,
+                    (self.atlas.shape[0] - point[2]) * vxsize)
         return p_to_ccf
     
     def scale_vector_to_PIR(self, vector):
@@ -236,7 +237,7 @@ class AtlasViewer(QtGui.QWidget):
     # to_ac_angle = float(coord_args[8])
     # orientation = coord_args[9]    
     def coordinateSubmitted(self):
-        if self.displayCtrl.params['Orientation'] != "right":
+        if self.atlas_view.display_ctrl.params['Orientation'] != "right":
             displayError('Set Coordinate function is only supported with Right orientation')
             return
         
@@ -252,11 +253,11 @@ class AtlasViewer(QtGui.QWidget):
         
         if len(coord_args) <= 4:
             # When only 4 points are given, assume point needs to be set using orientation == 'right'
-            translated_x = (self.atlas_view.atlas.shape[1] - (float(coord_args[0])/vxsize)) * self.atlas_view.scale[0] 
-            translated_y = (self.atlas_view.atlas.shape[2] - (float(coord_args[1])/vxsize)) * self.atlas_view.scale[0] 
-            translated_z = (self.atlas_view.atlas.shape[0] - (float(coord_args[2])/vxsize)) * self.atlas_view.scale[0] 
+            translated_x = (self.atlas.shape[1] - (float(coord_args[0])/vxsize)) * self.atlas_view.scale[0] 
+            translated_y = (self.atlas.shape[2] - (float(coord_args[1])/vxsize)) * self.atlas_view.scale[0] 
+            translated_z = (self.atlas.shape[0] - (float(coord_args[2])/vxsize)) * self.atlas_view.scale[0] 
             roi_origin = (translated_x, 0.0)
-            to_size = (self.atlas_view.atlas.shape[2] * self.atlas_view.scale[1], 0.0) 
+            to_size = (self.atlas.shape[2] * self.atlas_view.scale[1], 0.0) 
             to_ab_angle = 90
             to_ac_angle = 0
             target_p1 = translated_z 
@@ -288,7 +289,7 @@ class AtlasViewer(QtGui.QWidget):
         self.atlas_view.line_roi.setPos(pg.Point(roi_origin[0], roi_origin[1]))
         self.atlas_view.line_roi.setSize(pg.Point(to_size))
         self.atlas_view.line_roi.setAngle(to_ab_angle) 
-        self.atlas_view.slider.setValue(int(to_ac_angle))
+        self.atlas_view.angle_slider.setValue(int(to_ac_angle))
         self.target.setVisible(True)  # TODO: keep target visible when coming back to the same slice... how?
        
     def get_target_position(self, ccf_location, M, ab_vector, ac_vector, vxsize):
@@ -303,10 +304,10 @@ class AtlasViewer(QtGui.QWidget):
         return p1, p2
 
     def slider_up(self):
-        self.atlas_view.slider.triggerAction(QtGui.QAbstractSlider.SliderSingleStepAdd)
+        self.atlas_view.angle_slider.triggerAction(QtGui.QAbstractSlider.SliderSingleStepAdd)
         
     def slider_down(self):
-        self.atlas_view.slider.triggerAction(QtGui.QAbstractSlider.SliderSingleStepSub)
+        self.atlas_view.angle_slider.triggerAction(QtGui.QAbstractSlider.SliderSingleStepSub)
         
     def tilt_left(self):
         self.atlas_view.line_roi.rotate(1)
@@ -344,6 +345,7 @@ class CoordinatesCtrl(QtGui.QWidget):
         self.setLayout(self.layout)
         self.layout.setSpacing(0)
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.atlas_viewer = parent
         
         self.line = QtGui.QLineEdit(self)
         self.line.returnPressed.connect(self.set_coordinate)
@@ -377,7 +379,7 @@ class CoordinatesCtrl(QtGui.QWidget):
     
     def target_within_range(self, x, y, z):
 
-        vxsize = atlas._info[-1]['vxsize'] * 1e6
+        vxsize = self.atlas_viewer.atlas._info[-1]['vxsize'] * 1e6
         error = ""
         if z > (self.atlas_shape[2] * vxsize) or z < 0:
             error += "z coordinate {} is not within CCF range".format(z)
